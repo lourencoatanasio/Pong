@@ -30,47 +30,68 @@ function ballSpeedIncrease(ball)
 
 function newBall(pos, speed, radius)
 {
-	this.pos = pos;
-	this.speed = speed;
-	this.radius = radius;
-	this.update = function()
-	{
-		if(this.pos.x + this.radius > canvas.width) // bounce off the right side
-		{
-			this.pos = vec2(450, (Math.random() * 590) + 1);
-			this.speed = vec2(-5, -5);
-			// reset the paddle speed
-			paddle1.speed = vec2(5, 5);
-			paddle2.speed = vec2(5, 5);
-		}
-		else if (this.pos.x - this.radius < 0) // bounce off the left side
-		{
-			this.pos = vec2(450, (Math.random() * 590) + 1);
-			this.speed = vec2(5, 5);
-			// reset the paddle speed
-			paddle1.speed = vec2(5, 5);
-			paddle2.speed = vec2(5, 5);
-		}
-		if(this.pos.y + this.radius > canvas.height || this.pos.y - this.radius < 0) // bounce off the top and bottom
-			this.speed.y *= -1;
-		if(this.pos.x + this.radius > canvas.width - 10 && this.pos.y > paddle1.pos.y && this.pos.y < paddle1.pos.y + paddle1.height) // bounce off the paddle on the right
-		{
-			this.speed.x *= -1;
-			// increase the speed of the ball
-			ballSpeedIncrease(this);
-			console.log(this.speed);
-			console.log(paddle1.speed);
-		}
-		if(this.pos.x - this.radius < 10 && this.pos.y > paddle2.pos.y && this.pos.y < paddle2.pos.y + paddle2.height) // bounce off the paddle on the left
-		{
-			this.speed.x *= -1;
-			// increase the speed of the ball
-			ballSpeedIncrease(this);
-			console.log(this.speed);
-		}
-		this.pos.x += this.speed.x;
-		this.pos.y += this.speed.y;
-	}
+    this.pos = pos;
+    this.speed = speed;
+    this.radius = radius;
+
+    // Variables to store the ball's previous position
+    let oldPosX = this.pos.x;
+    let oldPosY = this.pos.y;
+
+    this.update = function()
+    {
+        // Store the current position before updating
+        oldPosX = this.pos.x;
+        oldPosY = this.pos.y;
+
+        // Update ball position
+        this.pos.x += this.speed.x;
+        this.pos.y += this.speed.y;
+
+        // Bounce off the top and bottom
+        if (this.pos.y + this.radius > canvas.height || this.pos.y - this.radius < 0) {
+            this.speed.y *= -1;
+        }
+
+        // Check for bouncing off the right side
+        if (this.pos.x + this.radius > canvas.width) {
+            this.pos = vec2(450, (Math.random() * 590) + 1); // reset in the middle
+            this.speed = vec2(-5, -5); // move left after reset
+            paddle1.speed = vec2(5, 5); // reset paddle speeds
+            paddle2.speed = vec2(5, 5);
+        }
+
+        // Check for bouncing off the left side
+        else if (this.pos.x - this.radius < 0) {
+            // Ensure ball is fully out of bounds before reset
+            if (this.pos.x - this.radius < paddle1.pos.x - paddle1.width) {
+                this.pos = vec2(450, (Math.random() * 590) + 1); // reset in the middle
+                this.speed = vec2(5, 5); // move right after reset
+                paddle1.speed = vec2(5, 5); // reset paddle speeds
+                paddle2.speed = vec2(5, 5);
+            }
+        }
+
+        // Continuous collision detection for right paddle
+        if (this.pos.x + this.radius > paddle1.pos.x && oldPosX + this.radius <= paddle1.pos.x) {
+            // Check if the ball is within the paddle's vertical bounds
+            if (this.pos.y + this.radius > paddle1.pos.y && this.pos.y - this.radius < paddle1.pos.y + paddle1.height) {
+                this.speed.x *= -1; // bounce back
+                ballSpeedIncrease(this); // increase the speed of the ball
+                console.log(this.speed);
+            }
+        }
+
+        // Continuous collision detection for left paddle
+        if (this.pos.x - this.radius < paddle2.pos.x + paddle2.width && oldPosX - this.radius >= paddle2.pos.x + paddle2.width) {
+            // Check if the ball is within the paddle's vertical bounds
+            if (this.pos.y + this.radius > paddle2.pos.y && this.pos.y - this.radius < paddle2.pos.y + paddle2.height) {
+                this.speed.x *= -1; // bounce back
+                ballSpeedIncrease(this); // increase the speed of the ball
+                console.log(this.speed);
+            }
+        }
+    }
 
 	this.draw = function()
 	{
@@ -126,6 +147,21 @@ function player2AI(ball, paddle)
 	}
 }
 
+function player1AI(ball, paddle)
+{
+	if(ball.speed.x < 0 && ball.pos.x < (canvas.width / 2) + canvas.width / 4)
+	{
+		if(ball.pos.y > paddle.pos.y + paddle.height / 2 && paddle.pos.y + paddle.height < canvas.height)
+		{
+			paddle.pos.y += paddle.speed.y;
+		}
+		else if(ball.pos.y < paddle.pos.y + paddle.height / 2 && paddle.pos.y > 0)
+		{
+			paddle.pos.y -= paddle.speed.y;
+		}
+	}
+}
+
 function increaseScore(ball, paddle1, paddle2)
 {
 	if (ball.pos.x + ball.radius > canvas.width)
@@ -146,9 +182,9 @@ function increaseScore(ball, paddle1, paddle2)
 }
 
 //create the ball and paddles
-const ball = new newBall(vec2(450, 300), vec2(5, 5), 10);
-const paddle1 = new newPaddle(vec2(890, 300 - 37.5), vec2(5, 5), 10, 75, 'w', 's');
-const paddle2 = new newPaddle(vec2(0, 300 - 37.5), vec2(5, 5), 10, 75, 'ArrowUp', 'ArrowDown');
+const ball = new newBall(vec2(450, 300), vec2(-9, 1), 10);
+const paddle1 = new newPaddle(vec2(890, 300 - 37.5), vec2(5, 5), 10, 1000, 'w', 's');
+const paddle2 = new newPaddle(vec2(0, 300 - 37.5), vec2(5, 5), 10, 1000, 'ArrowUp', 'ArrowDown');
 const keys = [];
 
 document.addEventListener('keydown', function(e)
@@ -185,6 +221,7 @@ function gameDraw()
 	paddle1.draw();
 	paddle2.draw();
 	player2AI(ball, paddle1);
+	player1AI(ball, paddle2);
 }
 
 function gameLoop() 
