@@ -6,9 +6,11 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Pong</title>
+    <!-- Add the CSP meta tag here -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'wasm-unsafe-eval' 'inline-speculation-rules' 'unsafe-inline' chrome-extension://2451dfe9-2d80-4680-b99d-e334022a8b1e;">
 </head>
 <style>
-    /* body {
+    body {
         display: flex;
         background-color: beige;
         justify-content: center;
@@ -43,13 +45,14 @@
 
     #player2score {
         right: 35%;
-    } */
+    } 
  </style>
 <body>
     <!-- <h1>Pong Game</h1>
     <h2 id="player1score">0</h2>
     <h2 id="player2score">0</h2> -->
     <canvas id="canvas" width="900" height="600"></canvas>
+    <image src="crate-img.png" id="crate-image" width="0" height="0"></image>
     <script src="gl-matrix.js"></script>
     <script src="pong3d.js"></script>
 </body>
