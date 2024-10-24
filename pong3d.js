@@ -3,14 +3,14 @@ var vertexShaderText =
 	'precision mediump float;',
 	'',
 	'attribute vec3 vertPosition;',
-	'attribute vec3 vertColor;',
-	'varying vec3 fragColor;',
+	'attribute vec2 vertTexCoord;',
+	'varying vec2 fragTexCoord;',
 	'uniform mat4 mWorld;',
 	'uniform mat4 mView;',
 	'uniform mat4 mProj;',
 	'void main()',
 	'{',
-	'	fragColor = vertColor;',
+	'	fragTexCoord = vertTexCoord;',
 	'	gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
 	'}',
 ].join('\n');
@@ -19,10 +19,12 @@ var fragmentShaderText =
 [
 	'precision mediump float;',
 	'',
-	'varying vec3 fragColor;',
+	'varying vec2 fragTexCoord;',
+	'uniform sampler2D sampler;',
+	'',
 	'void main()',
 	'{',
-	'	gl_FragColor = vec4(fragColor, 1.0);',
+	'	gl_FragColor = texture2D(sampler, fragTexCoord);',
 	'}',
 ].join('\n');
 
@@ -55,20 +57,20 @@ var init = function()
 	// Create shaders
 	//
 
-	var vertexShader = ctx.createShader(ctx.VERTEX_SHADER);
+	var verTexShader = ctx.createShader(ctx.VERTEX_SHADER);
 	var fragmentShader = ctx.createShader(ctx.FRAGMENT_SHADER);
 
-	ctx.shaderSource(vertexShader, vertexShaderText);
+	ctx.shaderSource(verTexShader, vertexShaderText);
 	ctx.shaderSource(fragmentShader, fragmentShaderText);
 
 	//
 	// Compile shaders
 	//
 
-	ctx.compileShader(vertexShader);
-	if(!ctx.getShaderParameter(vertexShader, ctx.COMPILE_STATUS)) // check if the vertex shader compiled successfully
+	ctx.compileShader(verTexShader);
+	if(!ctx.getShaderParameter(verTexShader, ctx.COMPILE_STATUS)) // check if the vertex shader compiled successfully
 	{
-		console.error('ERROR compiling vertex shader!', ctx.getShaderInfoLog(vertexShader));
+		console.error('ERROR compiling vertex shader!', ctx.getShaderInfoLog(verTexShader));
 		return;
 	}
 	ctx.compileShader(fragmentShader);
@@ -83,7 +85,7 @@ var init = function()
 	//
 
 	var program = ctx.createProgram();
-	ctx.attachShader(program, vertexShader);
+	ctx.attachShader(program, verTexShader);
 	ctx.attachShader(program, fragmentShader);
 	ctx.linkProgram(program);
 	if (!ctx.getProgramParameter(program, ctx.LINK_STATUS)) // check if the program linked successfully
@@ -99,46 +101,46 @@ var init = function()
 	}
 
 	//
-	// create a triangle
+	// create a cube
 	//
 
 	var boxVertices = 
-	[ // X, Y, Z           R, G, B
+	[ // X, Y, Z           U, V
 		// Top
-		-1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
-		-1.0, 1.0, 1.0,    0.5, 0.5, 0.5,
-		1.0, 1.0, 1.0,     0.5, 0.5, 0.5,
-		1.0, 1.0, -1.0,    0.5, 0.5, 0.5,
+		-1.0, 1.0, -1.0,   0.0, 0.0,
+		-1.0, 1.0, 1.0,    0.0, 1.0,
+		1.0, 1.0, 1.0,     1.0, 1.0,
+		1.0, 1.0, -1.0,    1.0, 0.0,
 
 		// Left
-		-1.0, 1.0, 1.0,    0.75, 0.25, 0.5,
-		-1.0, -1.0, 1.0,   0.75, 0.25, 0.5,
-		-1.0, -1.0, -1.0,  0.75, 0.25, 0.5,
-		-1.0, 1.0, -1.0,   0.75, 0.25, 0.5,
+		-1.0, 1.0, 1.0,    0.0, 0.0,
+		-1.0, -1.0, 1.0,   1.0, 0.0,
+		-1.0, -1.0, -1.0,  1.0, 1.0,
+		-1.0, 1.0, -1.0,   0.0, 1.0,
 
 		// Right
-		1.0, 1.0, 1.0,    0.25, 0.25, 0.75,
-		1.0, -1.0, 1.0,   0.25, 0.25, 0.75,
-		1.0, -1.0, -1.0,  0.25, 0.25, 0.75,
-		1.0, 1.0, -1.0,   0.25, 0.25, 0.75,
+		1.0, 1.0, 1.0,    1.0, 1.0,
+		1.0, -1.0, 1.0,    0.0, 1.0,
+		1.0, -1.0, -1.0,    0.0, 0.0,
+		1.0, 1.0, -1.0,    1.0, 0.0,
 
 		// Front
-		1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
-		1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
+		1.0, 1.0, 1.0,    1.0, 1.0,
+		1.0, -1.0, 1.0,    1.0, 0.0,
+		-1.0, -1.0, 1.0,    0.0, 0.0,
+		-1.0, 1.0, 1.0,    0.0, 1.0,
 
 		// Back
-		1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
-		1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
+		1.0, 1.0, -1.0,    0.0, 0.0,
+		1.0, -1.0, -1.0,    0.0, 1.0,
+		-1.0, -1.0, -1.0,    1.0, 1.0,
+		-1.0, 1.0, -1.0,    1.0, 0.0,
 
 		// Bottom
-		-1.0, -1.0, -1.0,   0.5, 0.5, 1.0,
-		-1.0, -1.0, 1.0,    0.5, 0.5, 1.0,
-		1.0, -1.0, 1.0,     0.5, 0.5, 1.0,
-		1.0, -1.0, -1.0,    0.5, 0.5, 1.0,
+		-1.0, -1.0, -1.0,   1.0, 1.0,
+		-1.0, -1.0, 1.0,    1.0, 0.0,
+		1.0, -1.0, 1.0,     0.0, 0.0,
+		1.0, -1.0, -1.0,    0.0, 1.0,	
 	];
 
 	var boxIndices =
@@ -178,27 +180,44 @@ var init = function()
 	ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), ctx.STATIC_DRAW);
 
 	var positionAttribLocation = ctx.getAttribLocation(program, 'vertPosition'); // get the location of the attribute variable in the program
-	var colorAttribLocation = ctx.getAttribLocation(program, 'vertColor'); // get the location of the attribute variable in the program 
+	var texCoordAttribLocation = ctx.getAttribLocation(program, 'vertTexCoord'); // get the location of the attribute variable in the program 
 	ctx.vertexAttribPointer(
 		positionAttribLocation, // attribute location
 		3, // number of elements per attribute
 		ctx.FLOAT, // type of elements
 		ctx.FALSE, // whether or not the data should be normalized
-		6 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
+		5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
 		0 // offset from the beginning of a single vertex to this attribute
 	);
+	
 	ctx.vertexAttribPointer(
-		colorAttribLocation, // attribute location
-		3, // number of elements per attribute
+		texCoordAttribLocation, // attribute location
+		2, // number of elements per attribute
 		ctx.FLOAT, // type of elements
 		ctx.FALSE, // whether or not the data should be normalized
-		6 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
+		5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
 		3 * Float32Array.BYTES_PER_ELEMENT // offset from the beginning of a single vertex to this attribute
 	);
 
 	ctx.enableVertexAttribArray(positionAttribLocation); // enable the attribute
-	ctx.enableVertexAttribArray(colorAttribLocation); // enable the attribute
+	ctx.enableVertexAttribArray(texCoordAttribLocation); // enable the attribute
 
+	//
+	// Create texture
+	//
+
+	var boxTexture = ctx.createTexture(); // create a texture object
+	ctx.bindTexture(ctx.TEXTURE_2D, boxTexture); // bind the texture to the target
+	ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, document.getElementById('crate-image')); // set the texture image
+	ctx.pixelStorei(ctx.UNPACK_FLIP_Y_WEBGL, true); // flip the image on the y axis
+
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE); // set the wrapping parameter for the texture
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR); // set the filtering parameter for the texture
+	ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
+
+
+	ctx.bindTexture(ctx.TEXTURE_2D, null); // unbind the texture
 	//
 	// creating matrices and tell the OPENCV to use the program
 	//
@@ -245,6 +264,10 @@ var init = function()
 
 		ctx.clearColor(0.75, 0.85, 0.8, 1.0);
 		ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT);
+
+		ctx.bindTexture(ctx.TEXTURE_2D, boxTexture); // bind the texture to the target
+		ctx.activeTexture(ctx.TEXTURE0); // set the active texture to the first texture
+
 		ctx.drawElements(ctx.TRIANGLES, boxIndices.length, ctx.UNSIGNED_SHORT, 0);
 		requestAnimationFrame(loop);
 	}
@@ -252,3 +275,4 @@ var init = function()
 };
 	
 init();
+
