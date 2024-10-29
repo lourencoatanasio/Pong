@@ -150,19 +150,19 @@ function increaseSpeed()
 {
   if (cubeSpeedx > 0) 
   {
-    cubeSpeedx += 0.1;
+    cubeSpeedx += 0.2;
   }
   else 
   {
-    cubeSpeedx -= 0.1;
+    cubeSpeedx -= 0.2;
   }
   if (cubeSpeedz > 0) 
   {
-    cubeSpeedz += 0.1;
+    cubeSpeedz += 0.2;
   }
   else 
   {
-    cubeSpeedz -= 0.1;
+    cubeSpeedz -= 0.2;
   }
 }
 
@@ -191,7 +191,48 @@ function checkIntersections() {
   }
 }
 
-function moveCube() {
+function randomDirection() // figure out how to make the cube go in a random direction
+{
+  let fullSpeed = 10;
+  let random = Math.random();
+  if(random < 0.5)
+  {
+    cubeSpeedx = fullSpeed * Math.random();
+    if (cubeSpeedx == 0)
+    {
+      cubeSpeedx = 1;
+    }
+    cubeSpeedz = fullSpeed - cubeSpeedx;
+  }
+  else
+  {
+    cubeSpeedz = fullSpeed * Math.random();
+    cubeSpeedx = fullSpeed - cubeSpeedz;
+  }
+  console.log('Full speed');
+  console.log(fullSpeed);
+  console.log('Cube speed x');
+  console.log(cubeSpeedx);
+  console.log('Cube speed z');
+  console.log(cubeSpeedz);
+}
+
+function respawnCube(point) 
+{
+  if(point == 1)
+  {
+    cube.position.set(0, 0, 0);
+    randomDirection();
+  }
+  else
+  {
+    cube.position.set(0, 0, 0);
+    randomDirection();
+  }
+}
+
+function moveCube() 
+{
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
 
@@ -201,17 +242,13 @@ function moveCube() {
 
   if (cube.position.x > 1000)
   {
-    cube.position.set(0, 0, 0);
-    cubeSpeedx = 5;
-    cubeSpeedz = 5;
+    respawnCube();
     player1Score++;
     document.getElementById('player1score').innerHTML = player1Score;
   }
   else if(cube.position.x < -1000) 
   {
-    cube.position.set(0, 0, 0);
-    cubeSpeedx = -5;
-    cubeSpeedz = -5;
+    respawnCube();
     player2Score++;
     document.getElementById('player2score').innerHTML = player2Score;
   }
