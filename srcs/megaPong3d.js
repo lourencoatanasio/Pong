@@ -3,16 +3,16 @@ import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitCon
 
 // Constants
 const PADDLE_SPEED = 10;
-const CUBE_INITIAL_SPEED = 20;
-const SHAKE_INTENSITY = 15;
-const SHAKE_DURATION = 20;
+const CUBE_INITIAL_SPEED = 10;
+const SHAKE_INTENSITY = 10;
+const SHAKE_DURATION = 10;
 const PADDLE_COLOR = 0x008000;
 const TABLE_COLOR = 0x800080;
 const PLANE_COLOR = 0x000000;
 const CUBE_COLOR = 0x00ff00;
 const POINT_LIGHT_INTENSITY = 1000000;
 const POINT_LIGHT_DISTANCE = 1000;
-const AMBIENT_LIGHT_INTENSITY = 1;
+const AMBIENT_LIGHT_INTENSITY = 3;
 
 // Variables
 let player1Score = 0;
@@ -65,8 +65,8 @@ const cubeBoundingBox = new THREE.Box3().setFromObject(cube);
 // Paddles and Table
 const table1 = makeParalellepiped(-1300, 0, 500, 2500, 100, 100, TABLE_COLOR);
 const table2 = makeParalellepiped(-1300, 0, -600, 2500, 100, 100, TABLE_COLOR);
-const paddle1 = makeParalellepiped(-800, 0, 0, 4, 10, 200, PADDLE_COLOR);
-const paddle2 = makeParalellepiped(800, 0, 0, 4, 10, 200, PADDLE_COLOR);
+const paddle1 = makeParalellepiped(-800, 0, -100, 4, 10, 200, PADDLE_COLOR);
+const paddle2 = makeParalellepiped(800, 0, -100, 4, 10, 200, PADDLE_COLOR);
 
 scene.add(table1);
 scene.add(table2);
@@ -158,6 +158,7 @@ function increaseSpeed()
 
 function checkIntersections() 
 {
+  let angle;
   cubeBoundingBox.setFromObject(cube);
 
   if (cubeBoundingBox.intersectsBox(table1BoundingBox) || cubeBoundingBox.intersectsBox(table2BoundingBox)) 
@@ -172,6 +173,9 @@ function checkIntersections()
     shakeDuration = SHAKE_DURATION;
     increaseSpeed();
     adjustCubeDirection(paddle1);
+    angle = Math.atan2(cubeSpeedz, cubeSpeedx) * (180 / Math.PI);
+    console.log('angle =');
+    console.log(angle);
     console.log(cubeSpeedx);
   }
 
@@ -181,6 +185,9 @@ function checkIntersections()
     shakeDuration = SHAKE_DURATION;
     increaseSpeed();
     adjustCubeDirection(paddle2);
+    angle = Math.atan2(cubeSpeedz, cubeSpeedx) * (180 / Math.PI);
+    console.log('angle =');
+    console.log(angle);
     console.log(cubeSpeedx);
   }
 
@@ -198,7 +205,7 @@ function adjustCubeDirection(paddle)
 {
   const relativeIntersectZ = (paddle.position.z + (paddle.geometry.parameters.depth / 2)) - cube.position.z;
   const normalizedIntersectZ = (relativeIntersectZ / (paddle.geometry.parameters.depth / 2)) - 1;
-  cubeSpeedz = normalizedIntersectZ * 5; // Adjust the multiplier as needed
+  cubeSpeedz = normalizedIntersectZ * 10; // Adjust the multiplier as needed
 }
 
 function respawnCube() 
@@ -206,6 +213,21 @@ function respawnCube()
   cube.position.set(0, 0, 0);
   cubeSpeedx = CUBE_INITIAL_SPEED;
   cubeSpeedz = 0;
+}
+
+function cubeOutofBounds()
+{
+  if (cube.position.x > 1000) 
+  {
+    respawnCube();
+    player1Score++;
+    document.getElementById('player1score').innerHTML = player1Score;
+  } else if (cube.position.x < -1000)
+  {
+    respawnCube();
+    player2Score++;
+    document.getElementById('player2score').innerHTML = player2Score;
+  }
 }
 
 function moveCube()
@@ -216,47 +238,59 @@ function moveCube()
   cube.position.z += cubeSpeedz;
   pointLight.position.copy(cube.position);
 
-  if (cube.position.x > 1000) 
-  {
-    respawnCube();
-    player1Score++;
-    document.getElementById('player1score').innerHTML = player1Score;
-  } else if (cube.position.x < -1000) 
-  {
-    respawnCube();
-    player2Score++;
-    document.getElementById('player2score').innerHTML = player2Score;
-  }
+  cubeOutofBounds();
 
   cubeBoundingBox.setFromObject(cube);
 }
 
-function paddle1AI(paddle, cube) 
+function paddle1AI(paddle, cube)
 {
-  if (cube.position.x < 0) 
+  let distance = (paddle.position.z) - cube.position.z;
+
+  if (distance < 0)
+  {
+    console.log('true');
+    distance *= -1;
+  }
+
+  console.log('distance =');
+  console.log(distance);
+  console.log('depth =')
+  console.log(paddle.geometry.parameters.depth);
+  console.log(paddle.position.z);
+
+  if (cube.position.x < 0 && cubeSpeedx < 0) 
   {
     if (paddle.position.z > cube.position.z && paddle.position.z > -500) 
     {
       // check if the paddle is not out of bounds
-      if (paddle.position.z + paddle.geometry.parameters.depth / 2 > 500)
+      if (paddle.position.z < -500)
       {
-        paddle.position.z = 500 - paddle.geometry.parameters.depth / 2;
+        paddle.position.z = -500;
       }
-      else 
+      else if ((paddle.position.z) - PADDLE_SPEED >= cube.position.z)
       {
         paddle.position.z -= PADDLE_SPEED;
       }
+      else if ((paddle.position.z) + PADDLE_SPEED < cube.position.z)
+      {
+        paddle.position.z -= distance;
+      }
     }
-    else if (paddle.position.z < cube.position.z && paddle.position.z < 500) 
+    else if (paddle.position.z < cube.position.z && paddle.position.z < 500)
     {
       // check if the paddle is not out of bounds
-      if (paddle.position.z - paddle.geometry.parameters.depth / 2 < -500)
+      if (paddle.position.z > 500)
       {
-        paddle.position.z = -500 + paddle.geometry.parameters.depth / 2;
+        paddle.position.z = 500;
       }
-      else 
+      else if ((paddle.position.z) - PADDLE_SPEED <= cube.position.z)
       {
         paddle.position.z += PADDLE_SPEED;
+      }
+      else((paddle.position.z) + PADDLE_SPEED > cube.position.z)
+      {
+        paddle.position.z += distance;
       }
     }
   }
