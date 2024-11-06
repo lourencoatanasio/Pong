@@ -3,6 +3,7 @@ import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitCon
 
 // Constants
 const PADDLE_SPEED = 10;
+const AIPADDLE_SPEED = 10;
 const CUBE_INITIAL_SPEED = 10;
 const SHAKE_INTENSITY = 10;
 const SHAKE_DURATION = 10;
@@ -22,6 +23,8 @@ let cubeSpeedz = 0;
 let shakeDuration = 0;
 let paddle1Speed = 0;
 let paddle2Speed = 0;
+let gamePaused = false;
+let beginGame = false;
 
 // Scene Setup
 const canvas = document.getElementById('canvas');
@@ -32,11 +35,11 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 10000);
 const controls = new OrbitControls(camera, renderer.domElement);
-camera.position.set(0, 5000, 0);
+camera.position.set(0, 500, 0);
 controls.update();
 
 // Helpers
-const gridHelper = new THREE.GridHelper(5000, 100, 0x808080);
+const gridHelper = new THREE.GridHelper(10000, 100, 0x808080);
 scene.add(gridHelper);
 
 // Plane
@@ -65,8 +68,8 @@ const cubeBoundingBox = new THREE.Box3().setFromObject(cube);
 // Paddles and Table
 const table1 = makeParalellepiped(-1300, 0, 500, 2500, 100, 100, TABLE_COLOR);
 const table2 = makeParalellepiped(-1300, 0, -600, 2500, 100, 100, TABLE_COLOR);
-const paddle1 = makeParalellepiped(-800, 0, -100, 4, 10, 200, PADDLE_COLOR);
-const paddle2 = makeParalellepiped(800, 0, -100, 4, 10, 200, PADDLE_COLOR);
+const paddle1 = makeParalellepiped(-800, 0, -100, 1, 10, 200, PADDLE_COLOR);
+const paddle2 = makeParalellepiped(800, 0, -100, 1, 10, 200, PADDLE_COLOR);
 
 scene.add(table1);
 scene.add(table2);
@@ -94,16 +97,23 @@ function handlePaddleControls()
     switch (event.key) 
     {
       case 'w':
+        beginGame = true;
         paddle1Speed = -PADDLE_SPEED;
         break;
       case 's':
+        beginGame = true;
         paddle1Speed = PADDLE_SPEED;
         break;
       case 'ArrowUp':
+        beginGame = true;
         paddle2Speed = -PADDLE_SPEED;
         break;
       case 'ArrowDown':
+        beginGame = true;
         paddle2Speed = PADDLE_SPEED;
+        break;
+      case 'p':
+        gamePaused = !gamePaused;
         break;
     }
   });
@@ -128,6 +138,7 @@ function movePaddles()
 {
   paddle1.position.z += paddle1Speed;
   paddle2.position.z += paddle2Speed;
+  console.log(paddle2.position.z);
   paddle1BoundingBox.setFromObject(paddle1);
   paddle2BoundingBox.setFromObject(paddle2);
 }
@@ -150,7 +161,7 @@ function applyCameraShake()
   }
 }
 
-function increaseSpeed() 
+function increaseSpeed()
 {
   if (cubeSpeedx < 20 && cubeSpeedx > -20)
     cubeSpeedx += (cubeSpeedx > 0) ? 0.2 : -0.2;
@@ -158,13 +169,11 @@ function increaseSpeed()
 
 function checkIntersections() 
 {
-  let angle;
   cubeBoundingBox.setFromObject(cube);
 
   if (cubeBoundingBox.intersectsBox(table1BoundingBox) || cubeBoundingBox.intersectsBox(table2BoundingBox)) 
   {
     cubeSpeedz *= -1;
-    shakeDuration = SHAKE_DURATION;
   }
 
   if (cubeBoundingBox.intersectsBox(paddle1BoundingBox)) 
@@ -173,10 +182,6 @@ function checkIntersections()
     shakeDuration = SHAKE_DURATION;
     increaseSpeed();
     adjustCubeDirection(paddle1);
-    angle = Math.atan2(cubeSpeedz, cubeSpeedx) * (180 / Math.PI);
-    console.log('angle =');
-    console.log(angle);
-    console.log(cubeSpeedx);
   }
 
   if (cubeBoundingBox.intersectsBox(paddle2BoundingBox)) 
@@ -185,10 +190,6 @@ function checkIntersections()
     shakeDuration = SHAKE_DURATION;
     increaseSpeed();
     adjustCubeDirection(paddle2);
-    angle = Math.atan2(cubeSpeedz, cubeSpeedx) * (180 / Math.PI);
-    console.log('angle =');
-    console.log(angle);
-    console.log(cubeSpeedx);
   }
 
   if (paddle1BoundingBox.intersectsBox(table1BoundingBox) || paddle1BoundingBox.intersectsBox(table2BoundingBox)) 
@@ -208,23 +209,36 @@ function adjustCubeDirection(paddle)
   cubeSpeedz = normalizedIntersectZ * 10; // Adjust the multiplier as needed
 }
 
-function respawnCube() 
+function respawnCube(player) 
 {
-  cube.position.set(0, 0, 0);
-  cubeSpeedx = CUBE_INITIAL_SPEED;
-  cubeSpeedz = 0;
+  if (player == 1)
+  {
+    cube.position.set(200, 0, 0);
+    cubeSpeedx = CUBE_INITIAL_SPEED;
+    cubeSpeedz = 0;
+    beginGame = false;
+    pointLight.position.copy(cube.position);
+  }
+  else if (player == 2)
+  {
+    cube.position.set(-200, 0, 0);
+    cubeSpeedx = -CUBE_INITIAL_SPEED;
+    cubeSpeedz = 0;
+    beginGame = false;
+    pointLight.position.copy(cube.position);
+  }
 }
 
 function cubeOutofBounds()
 {
-  if (cube.position.x > 1000) 
+  if (cube.position.x > 1000)
   {
-    respawnCube();
+    respawnCube(1);
     player1Score++;
     document.getElementById('player1score').innerHTML = player1Score;
   } else if (cube.position.x < -1000)
   {
-    respawnCube();
+    respawnCube(2);
     player2Score++;
     document.getElementById('player2score').innerHTML = player2Score;
   }
@@ -243,69 +257,73 @@ function moveCube()
   cubeBoundingBox.setFromObject(cube);
 }
 
-function paddle1AI(paddle, cube)
+function paddle1AI(paddle, cube) 
 {
-  let distance = (paddle.position.z) - cube.position.z;
+  const topWallZ = -390;
+  const bottomWallZ = 390;
 
-  if (distance < 0)
-  {
-    console.log('true');
-    distance *= -1;
-  }
+  // Calculate the distance from the top and bottom walls
+  let distanceFromTop = paddle.position.z - topWallZ;
+  let distanceFromBottom = bottomWallZ - paddle.position.z;
 
-  console.log('distance =');
-  console.log(distance);
-  console.log('depth =')
-  console.log(paddle.geometry.parameters.depth);
-  console.log(paddle.position.z);
+  // Calculate the distance between the paddle and the cube
+  let distanceToCube = paddle.position.z - cube.position.z;
 
-  if (cube.position.x < 0 && cubeSpeedx < 0) 
-  {
-    if (paddle.position.z > cube.position.z && paddle.position.z > -500) 
-    {
-      // check if the paddle is not out of bounds
-      if (paddle.position.z < -500)
-      {
-        paddle.position.z = -500;
+  // Ensure distances are positive
+  distanceFromTop = Math.abs(distanceFromTop);
+  distanceFromBottom = Math.abs(distanceFromBottom);
+  distanceToCube = Math.abs(distanceToCube);
+
+  console.log('DistanceFromTop: ' + distanceFromTop);
+  console.log('DistanceFromBottom: ' + distanceFromBottom);
+  console.log('PositionZ: ' + paddle.position.z);
+
+  paddle1BoundingBox.setFromObject(paddle);
+
+  if (cube.position.x < -200 && cubeSpeedx < 0) {
+    if (paddle.position.z > cube.position.z) {
+      // Move paddle up
+      if (paddle.position.z - AIPADDLE_SPEED < topWallZ) {
+        paddle.position.z = topWallZ;
+      } else if (paddle.position.z - AIPADDLE_SPEED >= cube.position.z) {
+        paddle.position.z -= AIPADDLE_SPEED;
+      } else {
+        paddle.position.z -= distanceToCube;
       }
-      else if ((paddle.position.z) - PADDLE_SPEED >= cube.position.z)
-      {
-        paddle.position.z -= PADDLE_SPEED;
-      }
-      else if ((paddle.position.z) + PADDLE_SPEED < cube.position.z)
-      {
-        paddle.position.z -= distance;
-      }
-    }
-    else if (paddle.position.z < cube.position.z && paddle.position.z < 500)
-    {
-      // check if the paddle is not out of bounds
-      if (paddle.position.z > 500)
-      {
-        paddle.position.z = 500;
-      }
-      else if ((paddle.position.z) - PADDLE_SPEED <= cube.position.z)
-      {
-        paddle.position.z += PADDLE_SPEED;
-      }
-      else((paddle.position.z) + PADDLE_SPEED > cube.position.z)
-      {
-        paddle.position.z += distance;
+    } else if (paddle.position.z < cube.position.z) {
+      // Move paddle down
+      if (paddle.position.z + AIPADDLE_SPEED > bottomWallZ) {
+        paddle.position.z = bottomWallZ;
+      } else if (paddle.position.z + AIPADDLE_SPEED <= cube.position.z) {
+        paddle.position.z += AIPADDLE_SPEED;
+      } else {
+        paddle.position.z += distanceToCube;
       }
     }
   }
 }
 
-function animate() 
+function animate()
 {
-  if (player1Score < 7 && player2Score < 7) 
+  if (player1Score < 7 && player2Score < 7)
   {
-    movePaddles();
-    checkIntersections();
-    moveCube();
-    paddle1AI(paddle1, cube);
-    applyCameraShake();
     renderer.render(scene, camera);
+    if (!gamePaused && beginGame)
+    {
+      movePaddles();
+      paddle1AI(paddle1, cube);
+      checkIntersections();
+      moveCube();
+      applyCameraShake();
+    }
+  }
+  else if (player1Score == 7)
+  {
+    document.getElementById('winner').innerHTML = 'Player 1 wins!';
+  }
+  else if (player2Score == 7)
+  {
+    document.getElementById('winner').innerHTML = 'Player 2 wins!';
   }
 }
 
