@@ -59,9 +59,9 @@ const pointLight = new THREE.PointLight(0xffffff, POINT_LIGHT_INTENSITY, POINT_L
 scene.add(pointLight);
 
 // Cube
-const cubeGeometry = new THREE.BoxGeometry(10, 10, 10);
-const cubeMaterial = new THREE.MeshBasicMaterial({ color: CUBE_COLOR });
-const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+const sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
+const sphereMaterial = new THREE.MeshStandardMaterial({ color: CUBE_COLOR });
+const cube = new THREE.Mesh(sphereGeometry, sphereMaterial);
 scene.add(cube);
 const cubeBoundingBox = new THREE.Box3().setFromObject(cube);
 
@@ -138,7 +138,6 @@ function movePaddles()
 {
   paddle1.position.z += paddle1Speed;
   paddle2.position.z += paddle2Speed;
-  console.log(paddle2.position.z);
   paddle1BoundingBox.setFromObject(paddle1);
   paddle2BoundingBox.setFromObject(paddle2);
 }
@@ -273,10 +272,6 @@ function paddle1AI(paddle, cube)
   distanceFromTop = Math.abs(distanceFromTop);
   distanceFromBottom = Math.abs(distanceFromBottom);
   distanceToCube = Math.abs(distanceToCube);
-
-  console.log('DistanceFromTop: ' + distanceFromTop);
-  console.log('DistanceFromBottom: ' + distanceFromBottom);
-  console.log('PositionZ: ' + paddle.position.z);
 
   paddle1BoundingBox.setFromObject(paddle);
 
