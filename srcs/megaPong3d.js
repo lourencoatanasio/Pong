@@ -261,16 +261,10 @@ function paddle1AI(paddle, cube)
   const topWallZ = -390;
   const bottomWallZ = 390;
 
-  // Calculate the distance from the top and bottom walls
-  let distanceFromTop = paddle.position.z - topWallZ;
-  let distanceFromBottom = bottomWallZ - paddle.position.z;
-
   // Calculate the distance between the paddle and the cube
   let distanceToCube = paddle.position.z - cube.position.z;
 
   // Ensure distances are positive
-  distanceFromTop = Math.abs(distanceFromTop);
-  distanceFromBottom = Math.abs(distanceFromBottom);
   distanceToCube = Math.abs(distanceToCube);
 
   paddle1BoundingBox.setFromObject(paddle);
@@ -298,6 +292,28 @@ function paddle1AI(paddle, cube)
   }
 }
 
+let startTime = Date.now();
+let sphereData = [];
+
+function saveSphereData() 
+{
+  let time = 0;
+  let position = { x: cube.position.x, y: cube.position.y, z: cube.position.z };
+  let speed = { x: cubeSpeedx, z: cubeSpeedz };
+  time = Date.now() - startTime;
+
+  if (sphereData.length == 0) 
+  {
+    sphereData.push({ time: time, position: position, speed: speed });
+  }
+  else
+  {
+    sphereData[0] = { time: time, position: position, speed: speed };
+  }
+}
+
+setInterval(saveSphereData, 1000);
+
 function animate()
 {
   if (player1Score < 7 && player2Score < 7)
@@ -311,6 +327,9 @@ function animate()
       moveCube();
       applyCameraShake();
     }
+    let elapsedTime = Date.now() - startTime;
+    console.log(elapsedTime / 1000);
+    console.log(sphereData);
   }
   else if (player1Score == 7)
   {
