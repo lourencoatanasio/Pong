@@ -4,7 +4,7 @@ import { OrbitControls } from '../three.js-master/examples/jsm/controls/OrbitCon
 // Constants
 const PADDLE_SPEED = 10;
 const AIPADDLE_SPEED = 10;
-const CUBE_INITIAL_SPEED = 10;
+const CUBE_INITIAL_SPEED = 5;
 const SHAKE_INTENSITY = 10;
 const SHAKE_DURATION = 10;
 const PADDLE_COLOR = 0x008000;
@@ -173,8 +173,6 @@ function checkIntersections()
   if (cubeBoundingBox.intersectsBox(table1BoundingBox) || cubeBoundingBox.intersectsBox(table2BoundingBox)) 
   {
     cubeSpeedz *= -1;
-    console.log('Table hit' + cube.position.z);
-
   }
 
   if (cubeBoundingBox.intersectsBox(paddle1BoundingBox)) 
@@ -234,11 +232,13 @@ function cubeOutofBounds()
 {
   if (cube.position.x > 1000)
   {
+    console.log('z is ' + cube.position.z + ' x is ' + cube.position.x);
     respawnCube(1);
     player1Score++;
     document.getElementById('player1score').innerHTML = player1Score;
   } else if (cube.position.x < -1000)
   {
+    console.log('z is ' + cube.position.z + ' x is ' + cube.position.x); 
     respawnCube(2);
     player2Score++;
     document.getElementById('player2score').innerHTML = player2Score;
@@ -281,15 +281,10 @@ function saveSphereData()
 
 saveSphereData();
 setInterval(saveSphereData, 1000);
-setInterval(() => console.log(sphereData), 1000);
 
-function calculateTrajectory()
+function calculateTrajectory()  
 {
   let data = sphereData[0];
-  let time = 0;
-  let position = { x: cube.position.x, z: cube.position.z };
-  let speed = { x: cubeSpeedx, z: cubeSpeedz };
-  time = Date.now() - startTime;
 
   let finalAngle = Math.atan2(data.speed['z'], data.speed['x']);
   finalAngle = finalAngle * (180 / Math.PI);
@@ -297,20 +292,32 @@ function calculateTrajectory()
   let distance = 0;
   let finalPosition = { x: 0, z: 0 };
 
-  if (data.speed['x'] > 0)
-  {
-    distance = 1000 - data.position['x'];
-    finalPosition['x'] = 1000;
-  }
-  else if (data.speed['x'] < 0)
-  {
-    distance = -1000 - data.position['x'];
-    finalPosition['x'] = -1000;
+  if (data.speed['x'] > 0) {
+    distance = 800 - data.position['x'];
+    finalPosition['x'] = 800;
+  } else if (data.speed['x'] < 0) {
+    distance = -800 - data.position['x'];
+    finalPosition['x'] = -800;
   }
 
-  finalPosition['z'] = data.position['z'] + (data.speed['z'] * (distance / data.speed['x']));
+  // Calculate the distance along the z axis using trigonometric functions
+  let angleRadians = Math.atan2(data.speed['z'], data.speed['x']);
+  let zDistance = distance * Math.tan(angleRadians);
+  finalPosition['z'] = data.position['z'] + zDistance;
 
-  return (finalPosition);
+  // Handle wall bounces
+  const topWallZ = -500;
+  const bottomWallZ = 500;
+
+  while (finalPosition['z'] < topWallZ || finalPosition['z'] > bottomWallZ) {
+    if (finalPosition['z'] < topWallZ) {
+      finalPosition['z'] = topWallZ + (topWallZ - finalPosition['z']);
+    } else if (finalPosition['z'] > bottomWallZ) {
+      finalPosition['z'] = bottomWallZ - (finalPosition['z'] - bottomWallZ);
+    }
+  }
+
+  return finalPosition;
 }
 
 function paddle1AI(paddle) 
@@ -321,49 +328,31 @@ function paddle1AI(paddle)
   // Calculate the final position of the cube using the calculateTrajectory function
   let finalPosition = calculateTrajectory();
 
-  let realFinalPosition = { x: 0, z: 0 };
-
-  if (finalPosition['x'] < 0)
-  {
-    if(finalPosition['z'] < -500)
-	{
-		console.log('z is less than -500');
-		while(finalPosition['z'] < -500)
-		{
-			finalPosition['z'] += 1000;
-		}
-	}
-	else if(finalPosition['z'] > 500)
-	{
-		console.log('z is greater than 500');
-		while(finalPosition['z'] > 500)
-		{
-			finalPosition['z'] -= 1000;
-		}
-	}
-    realFinalPosition = { x: 1000, z: finalPosition['z'] };
-    console.log('Final position: ' + realFinalPosition['z']);
-  }
-
   // Ensure the paddle moves towards the final position of the cube
-  if (cubeSpeedx < 0) {
-    if (paddle.position.z > realFinalPosition.z) {
+  if (cubeSpeedx < 0) 
+  {
+    if (paddle.position.z > finalPosition['z'])
+  {
       // Move paddle up
-      if (paddle.position.z - AIPADDLE_SPEED < topWallZ) {
+      if (paddle.position.z - AIPADDLE_SPEED < topWallZ) 
+      {
         paddle.position.z = topWallZ;
-      } else if (paddle.position.z - AIPADDLE_SPEED >= realFinalPosition['z']) {
-        paddle.position.z -= AIPADDLE_SPEED;
-      } else {
-        paddle.position.z -= (paddle.position.z - realFinalPosition['z']);
       }
-    } else if (paddle.position.z < realFinalPosition['z']) {
+      else if (paddle.position.z - AIPADDLE_SPEED >= finalPosition['z'])
+      {
+        paddle.position.z -= AIPADDLE_SPEED;
+      }
+    } 
+    else if (paddle.position.z < finalPosition['z']) 
+    {
       // Move paddle down
-      if (paddle.position.z + AIPADDLE_SPEED > bottomWallZ) {
+      if (paddle.position.z + AIPADDLE_SPEED > bottomWallZ)
+      {
         paddle.position.z = bottomWallZ;
-      } else if (paddle.position.z + AIPADDLE_SPEED <= realFinalPosition['z']) {
+      } 
+      else if (paddle.position.z + AIPADDLE_SPEED <= finalPosition['z']) 
+      {
         paddle.position.z += AIPADDLE_SPEED;
-      } else {
-        paddle.position.z += (realFinalPosition['z'] - paddle.position.z);
       }
     }
   }
@@ -382,7 +371,6 @@ function animate()
       moveCube();
       applyCameraShake();
     }
-    let elapsedTime = Date.now() - startTime;
   }
   else if (player1Score == 7)
   {
